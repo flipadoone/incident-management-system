@@ -1,0 +1,27 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: viaappia_incident_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: incident_management
+      POSTGRES_USER: viaappia
+      POSTGRES_PASSWORD: viaappia123
+    ports:
+      - "5432:5432"
+    volumes:
+      - viaappia_postgres_data:/var/lib/postgresql/data
+    networks:
+      - viaappia_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U viaappia -d incident_management"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  viaappia_postgres_data:
+
+networks:
+  viaappia_network:
+    driver: bridge
