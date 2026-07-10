@@ -80,8 +80,8 @@ export class Dashboard implements OnInit {
       nonNullable: true,
       validators: [
         Validators.required,
-        Validators.minLength(3),
-        Validators.maxLength(150)
+        Validators.minLength(5),
+        Validators.maxLength(120)
       ]
     }),
 
@@ -89,8 +89,7 @@ export class Dashboard implements OnInit {
       nonNullable: true,
       validators: [
         Validators.required,
-        Validators.minLength(5),
-        Validators.maxLength(2000)
+        Validators.maxLength(5000)
       ]
     }),
 
@@ -113,7 +112,7 @@ export class Dashboard implements OnInit {
       nonNullable: true,
       validators: [
         Validators.required,
-        Validators.maxLength(200)
+        Validators.maxLength(150)
       ]
     })
   });
@@ -377,16 +376,22 @@ export class Dashboard implements OnInit {
     this.saving = true;
     this.errorMessage = '';
 
-    const request: CreateIncidentRequest =
-      this.incidentForm.getRawValue();
+    const formValue = this.incidentForm.getRawValue();
 
-    this.incidentService
-      .create(request)
-      .pipe(
-        finalize(() => {
-          this.saving = false;
-          this.changeDetectorRef.markForCheck();
-        })
+const request: CreateIncidentRequest = {
+  title: formValue.title.trim(),
+  description: formValue.description.trim(),
+  priority: formValue.priority,
+  category: formValue.category,
+  location: formValue.location.trim()
+};
+this.incidentService
+  .create(request)
+  .pipe(
+    finalize(() => {
+      this.saving = false;
+      this.changeDetectorRef.markForCheck();
+    })
       )
       .subscribe({
         next: response => {

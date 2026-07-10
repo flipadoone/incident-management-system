@@ -7,7 +7,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #102a43, #243b53);
+  background: linear-gradient(135deg, #bdb8a4, #243b53);
 }
 
 .login-card {
@@ -22,7 +22,7 @@
 .login-card h1 {
   text-align: center;
   margin-bottom: 24px;
-  color: #102a43;
+  color: #d1cbc8;
 }
 
 form {
@@ -33,7 +33,7 @@ form {
 
 label {
   font-weight: 600;
-  color: #334e68;
+  color: #977b76;
 }
 
 input {
@@ -47,7 +47,7 @@ button {
   height: 46px;
   border: none;
   border-radius: 8px;
-  background: #1f7a8c;
+  background: #333528;
   color: white;
   font-weight: 700;
   cursor: pointer;
