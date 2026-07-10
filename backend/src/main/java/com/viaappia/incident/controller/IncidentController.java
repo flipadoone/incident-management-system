@@ -9,8 +9,10 @@ import com.viaappia.incident.entity.enums.IncidentPriority;
 import com.viaappia.incident.entity.enums.IncidentStatus;
 import com.viaappia.incident.service.IncidentService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -20,11 +22,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 /**
- * REST controller responsible for incident management endpoints.
+ * REST controller responsible for authenticated incident management endpoints.
  */
 @RestController
 @RequestMapping("/api/v1/incidents")
 @RequiredArgsConstructor
+@SecurityRequirement(name = "bearerAuth")
 public class IncidentController {
 
     private final IncidentService incidentService;
@@ -52,7 +55,7 @@ public class IncidentController {
             @RequestParam(required = false) IncidentPriority priority,
             @RequestParam(required = false) IncidentCategory category,
             @RequestParam(required = false) String title,
-            Pageable pageable
+            @ParameterObject Pageable pageable
     ) {
         Page<IncidentResponse> response = incidentService.findAll(status, priority, category, title, pageable);
         return ResponseEntity.ok(ApiResponse.success("Incidents listed successfully", response));
