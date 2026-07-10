@@ -21,6 +21,7 @@ import {
   IncidentPriority,
   IncidentStatus
 } from '../../core/models/incident';
+import { UpdateIncidentRequest } from '../../core/models/update-incident-request';
 import { UserResponse } from '../../core/models/user-response';
 import { Auth } from '../../core/services/auth';
 import {
@@ -29,6 +30,9 @@ import {
 } from '../../core/services/incident';
 import { Token } from '../../core/services/token';
 
+/**
+ * Página principal para consulta e gerenciamento das demandas.
+ */
 @Component({
   selector: 'app-dashboard',
   imports: [
@@ -47,6 +51,13 @@ export class Dashboard implements OnInit {
   saving = false;
   modalOpen = false;
 
+  /**
+   * Guarda o ID da demanda que está sendo atualizada.
+   *
+   * Isso evita cliques duplicados somente no cartaz em processamento.
+   */
+  actionInProgressId: string | null = null;
+
   errorMessage = '';
   successMessage = '';
 
@@ -54,12 +65,15 @@ export class Dashboard implements OnInit {
     title: new FormControl('', {
       nonNullable: true
     }),
+
     status: new FormControl<IncidentStatus | ''>('', {
       nonNullable: true
     }),
+
     priority: new FormControl<IncidentPriority | ''>('', {
       nonNullable: true
     }),
+
     category: new FormControl<IncidentCategory | ''>('', {
       nonNullable: true
     })
@@ -71,34 +85,32 @@ export class Dashboard implements OnInit {
       validators: [
         Validators.required,
         Validators.minLength(3),
-        Validators.maxLength(150)
+        Validators.maxLength(120)
       ]
     }),
+
     description: new FormControl('', {
       nonNullable: true,
       validators: [
         Validators.required,
-        Validators.minLength(5),
-        Validators.maxLength(2000)
+        Validators.minLength(5)
       ]
     }),
-    status: new FormControl<IncidentStatus>('OPEN', {
-      nonNullable: true,
-      validators: [Validators.required]
-    }),
+
     priority: new FormControl<IncidentPriority>('MEDIUM', {
       nonNullable: true,
       validators: [Validators.required]
     }),
+
     category: new FormControl<IncidentCategory>('HARDWARE', {
       nonNullable: true,
       validators: [Validators.required]
     }),
+
     location: new FormControl('', {
       nonNullable: true,
       validators: [
-        Validators.required,
-        Validators.maxLength(200)
+        Validators.maxLength(150)
       ]
     })
   });
@@ -113,10 +125,16 @@ export class Dashboard implements OnInit {
     this.user = this.tokenService.getUser();
   }
 
+  /**
+   * Carrega as demandas assim que o dashboard é aberto.
+   */
   ngOnInit(): void {
     this.loadIncidents();
   }
 
+  /**
+   * Busca as demandas aplicando os filtros informados.
+   */
   loadIncidents(): void {
     this.loading = true;
     this.errorMessage = '';
@@ -152,6 +170,9 @@ export class Dashboard implements OnInit {
       });
   }
 
+  /**
+   * Remove os filtros e recarrega o mural.
+   */
   clearFilters(): void {
     this.filterForm.reset({
       title: '',
@@ -163,6 +184,9 @@ export class Dashboard implements OnInit {
     this.loadIncidents();
   }
 
+  /**
+   * Abre o formulário de criação com valores iniciais seguros.
+   */
   openCreateModal(): void {
     this.successMessage = '';
     this.errorMessage = '';
@@ -170,7 +194,6 @@ export class Dashboard implements OnInit {
     this.createForm.reset({
       title: '',
       description: '',
-      status: 'OPEN',
       priority: 'MEDIUM',
       category: 'HARDWARE',
       location: ''
@@ -180,6 +203,9 @@ export class Dashboard implements OnInit {
     this.changeDetectorRef.markForCheck();
   }
 
+  /**
+   * Fecha o formulário, exceto enquanto uma requisição estiver em andamento.
+   */
   closeCreateModal(): void {
     if (this.saving) {
       return;
@@ -190,6 +216,9 @@ export class Dashboard implements OnInit {
     this.changeDetectorRef.markForCheck();
   }
 
+  /**
+   * Registra uma nova demanda no backend.
+   */
   createIncident(): void {
     if (this.createForm.invalid || this.saving) {
       this.createForm.markAllAsTouched();
@@ -232,6 +261,49 @@ export class Dashboard implements OnInit {
       });
   }
 
+  /**
+   * Inicia o atendimento de uma demanda aberta.
+   */
+  startIncident(incident: Incident): void {
+    this.changeIncidentStatus(
+      incident,
+      'IN_PROGRESS',
+      'iniciar o atendimento desta demanda'
+    );
+  }
+
+  /**
+   * Marca uma demanda em andamento como resolvida.
+   */
+  resolveIncident(incident: Incident): void {
+    this.changeIncidentStatus(
+      incident,
+      'RESOLVED',
+      'concluir esta demanda'
+    );
+  }
+
+  /**
+   * Reabre uma demanda anteriormente resolvida.
+   */
+  reopenIncident(incident: Incident): void {
+    this.changeIncidentStatus(
+      incident,
+      'OPEN',
+      'reabrir esta demanda'
+    );
+  }
+
+  /**
+   * Informa se determinada demanda está sendo atualizada.
+   */
+  isProcessing(incident: Incident): boolean {
+    return this.actionInProgressId === incident.id;
+  }
+
+  /**
+   * Encerra a sessão local e retorna para o login.
+   */
   logout(): void {
     this.authService.logout();
 
@@ -267,7 +339,7 @@ export class Dashboard implements OnInit {
       HARDWARE: 'Hardware',
       SOFTWARE: 'Software',
       NETWORK: 'Rede',
-      ACCESS: 'Acesso',
+      SECURITY: 'Segurança',
       OTHER: 'Outro'
     };
 
@@ -278,6 +350,81 @@ export class Dashboard implements OnInit {
     return incident.id;
   }
 
+  /**
+   * Atualiza somente o status, preservando todos os demais dados.
+   *
+   * A interface só será atualizada depois da confirmação do backend.
+   */
+  private changeIncidentStatus(
+    incident: Incident,
+    newStatus: IncidentStatus,
+    confirmationAction: string
+  ): void {
+    if (this.actionInProgressId !== null) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Deseja realmente ${confirmationAction}?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.actionInProgressId = incident.id;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    const request: UpdateIncidentRequest = {
+      title: incident.title,
+      description: incident.description,
+      status: newStatus,
+      priority: incident.priority,
+      category: incident.category,
+      location: incident.location
+    };
+
+    this.incidentService
+      .update(incident.id, request)
+      .pipe(
+        finalize(() => {
+          this.actionInProgressId = null;
+          this.changeDetectorRef.markForCheck();
+        })
+      )
+      .subscribe({
+        next: response => {
+          this.successMessage =
+            `Demanda "${response.data.title}" atualizada para ` +
+            `"${this.statusLabel(response.data.status)}".`;
+
+          /*
+           * Substitui no mural somente o registro confirmado pelo backend.
+           */
+          this.incidents = this.incidents.map(currentIncident =>
+            currentIncident.id === response.data.id
+              ? response.data
+              : currentIncident
+          );
+
+          this.changeDetectorRef.markForCheck();
+        },
+
+        error: (error: HttpErrorResponse) => {
+          this.errorMessage = this.getErrorMessage(
+            error,
+            'Não foi possível atualizar o status da demanda.'
+          );
+
+          this.changeDetectorRef.markForCheck();
+        }
+      });
+  }
+
+  /**
+   * Traduz erros HTTP em mensagens amigáveis.
+   */
   private getErrorMessage(
     error: HttpErrorResponse,
     fallbackMessage: string
@@ -297,6 +444,10 @@ export class Dashboard implements OnInit {
 
     if (error.status === 403) {
       return 'Você não possui permissão para esta operação.';
+    }
+
+    if (error.status === 404) {
+      return 'A demanda não foi encontrada.';
     }
 
     return error.error?.message ?? fallbackMessage;

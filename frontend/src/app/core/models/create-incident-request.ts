@@ -1,13 +1,16 @@
 import {
   IncidentCategory,
-  IncidentPriority,
-  IncidentStatus
+  IncidentPriority
 } from './incident';
 
+/**
+ * Dados necessários para registrar uma nova demanda.
+ *
+ * O status inicial é definido pelo backend como OPEN.
+ */
 export interface CreateIncidentRequest {
   title: string;
   description: string;
-  status: IncidentStatus;
   priority: IncidentPriority;
   category: IncidentCategory;
   location: string;
