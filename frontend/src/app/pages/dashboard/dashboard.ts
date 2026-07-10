@@ -30,9 +30,8 @@ import {
 } from '../../core/services/incident';
 import { Token } from '../../core/services/token';
 
-/**
- * Página principal para consulta e gerenciamento das demandas.
- */
+type ModalMode = 'create' | 'edit';
+
 @Component({
   selector: 'app-dashboard',
   imports: [
@@ -51,11 +50,8 @@ export class Dashboard implements OnInit {
   saving = false;
   modalOpen = false;
 
-  /**
-   * Guarda o ID da demanda que está sendo atualizada.
-   *
-   * Isso evita cliques duplicados somente no cartaz em processamento.
-   */
+  modalMode: ModalMode = 'create';
+  editingIncidentId: string | null = null;
   actionInProgressId: string | null = null;
 
   errorMessage = '';
@@ -79,13 +75,13 @@ export class Dashboard implements OnInit {
     })
   });
 
-  readonly createForm = new FormGroup({
+  readonly incidentForm = new FormGroup({
     title: new FormControl('', {
       nonNullable: true,
       validators: [
         Validators.required,
         Validators.minLength(3),
-        Validators.maxLength(120)
+        Validators.maxLength(150)
       ]
     }),
 
@@ -93,8 +89,14 @@ export class Dashboard implements OnInit {
       nonNullable: true,
       validators: [
         Validators.required,
-        Validators.minLength(5)
+        Validators.minLength(5),
+        Validators.maxLength(2000)
       ]
+    }),
+
+    status: new FormControl<IncidentStatus>('OPEN', {
+      nonNullable: true,
+      validators: [Validators.required]
     }),
 
     priority: new FormControl<IncidentPriority>('MEDIUM', {
@@ -110,7 +112,8 @@ export class Dashboard implements OnInit {
     location: new FormControl('', {
       nonNullable: true,
       validators: [
-        Validators.maxLength(150)
+        Validators.required,
+        Validators.maxLength(200)
       ]
     })
   });
@@ -125,16 +128,14 @@ export class Dashboard implements OnInit {
     this.user = this.tokenService.getUser();
   }
 
-  /**
-   * Carrega as demandas assim que o dashboard é aberto.
-   */
   ngOnInit(): void {
     this.loadIncidents();
   }
 
-  /**
-   * Busca as demandas aplicando os filtros informados.
-   */
+  get isEditing(): boolean {
+    return this.modalMode === 'edit';
+  }
+
   loadIncidents(): void {
     this.loading = true;
     this.errorMessage = '';
@@ -170,9 +171,6 @@ export class Dashboard implements OnInit {
       });
   }
 
-  /**
-   * Remove os filtros e recarrega o mural.
-   */
   clearFilters(): void {
     this.filterForm.reset({
       title: '',
@@ -184,16 +182,16 @@ export class Dashboard implements OnInit {
     this.loadIncidents();
   }
 
-  /**
-   * Abre o formulário de criação com valores iniciais seguros.
-   */
   openCreateModal(): void {
+    this.modalMode = 'create';
+    this.editingIncidentId = null;
     this.successMessage = '';
     this.errorMessage = '';
 
-    this.createForm.reset({
+    this.incidentForm.reset({
       title: '',
       description: '',
+      status: 'OPEN',
       priority: 'MEDIUM',
       category: 'HARDWARE',
       location: ''
@@ -203,67 +201,55 @@ export class Dashboard implements OnInit {
     this.changeDetectorRef.markForCheck();
   }
 
-  /**
-   * Fecha o formulário, exceto enquanto uma requisição estiver em andamento.
-   */
-  closeCreateModal(): void {
+  openEditModal(incident: Incident): void {
+    if (this.actionInProgressId !== null) {
+      return;
+    }
+
+    this.modalMode = 'edit';
+    this.editingIncidentId = incident.id;
+    this.successMessage = '';
+    this.errorMessage = '';
+
+    this.incidentForm.reset({
+      title: incident.title,
+      description: incident.description,
+      status: incident.status,
+      priority: incident.priority,
+      category: incident.category,
+      location: incident.location
+    });
+
+    this.modalOpen = true;
+    this.changeDetectorRef.markForCheck();
+  }
+
+  closeIncidentModal(): void {
     if (this.saving) {
       return;
     }
 
     this.modalOpen = false;
+    this.editingIncidentId = null;
     this.errorMessage = '';
+
     this.changeDetectorRef.markForCheck();
   }
 
-  /**
-   * Registra uma nova demanda no backend.
-   */
-  createIncident(): void {
-    if (this.createForm.invalid || this.saving) {
-      this.createForm.markAllAsTouched();
+  saveIncident(): void {
+    if (this.incidentForm.invalid || this.saving) {
+      this.incidentForm.markAllAsTouched();
       return;
     }
 
-    this.saving = true;
-    this.errorMessage = '';
+    if (this.isEditing) {
+      this.updateIncident();
+      return;
+    }
 
-    const request: CreateIncidentRequest =
-      this.createForm.getRawValue();
-
-    this.incidentService
-      .create(request)
-      .pipe(
-        finalize(() => {
-          this.saving = false;
-          this.changeDetectorRef.markForCheck();
-        })
-      )
-      .subscribe({
-        next: response => {
-          this.modalOpen = false;
-
-          this.successMessage =
-            `Demanda "${response.data.title}" criada com sucesso.`;
-
-          this.loadIncidents();
-          this.changeDetectorRef.markForCheck();
-        },
-
-        error: (error: HttpErrorResponse) => {
-          this.errorMessage = this.getErrorMessage(
-            error,
-            'Não foi possível criar a demanda.'
-          );
-
-          this.changeDetectorRef.markForCheck();
-        }
-      });
+    this.createIncident();
   }
 
-  /**
-   * Inicia o atendimento de uma demanda aberta.
-   */
   startIncident(incident: Incident): void {
     this.changeIncidentStatus(
       incident,
@@ -272,9 +258,6 @@ export class Dashboard implements OnInit {
     );
   }
 
-  /**
-   * Marca uma demanda em andamento como resolvida.
-   */
   resolveIncident(incident: Incident): void {
     this.changeIncidentStatus(
       incident,
@@ -283,9 +266,6 @@ export class Dashboard implements OnInit {
     );
   }
 
-  /**
-   * Reabre uma demanda anteriormente resolvida.
-   */
   reopenIncident(incident: Incident): void {
     this.changeIncidentStatus(
       incident,
@@ -294,16 +274,59 @@ export class Dashboard implements OnInit {
     );
   }
 
-  /**
-   * Informa se determinada demanda está sendo atualizada.
-   */
+  deleteIncident(incident: Incident): void {
+    if (this.actionInProgressId !== null) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Deseja realmente excluir a demanda "${incident.title}"?\n\n` +
+      'Essa ação não poderá ser desfeita.'
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.actionInProgressId = incident.id;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    this.incidentService
+      .delete(incident.id)
+      .pipe(
+        finalize(() => {
+          this.actionInProgressId = null;
+          this.changeDetectorRef.markForCheck();
+        })
+      )
+      .subscribe({
+        next: () => {
+          this.incidents = this.incidents.filter(
+            currentIncident => currentIncident.id !== incident.id
+          );
+
+          this.successMessage =
+            `Demanda "${incident.title}" excluída com sucesso.`;
+
+          this.changeDetectorRef.markForCheck();
+        },
+
+        error: (error: HttpErrorResponse) => {
+          this.errorMessage = this.getErrorMessage(
+            error,
+            'Não foi possível excluir a demanda.'
+          );
+
+          this.changeDetectorRef.markForCheck();
+        }
+      });
+  }
+
   isProcessing(incident: Incident): boolean {
     return this.actionInProgressId === incident.id;
   }
 
-  /**
-   * Encerra a sessão local e retorna para o login.
-   */
   logout(): void {
     this.authService.logout();
 
@@ -350,11 +373,92 @@ export class Dashboard implements OnInit {
     return incident.id;
   }
 
-  /**
-   * Atualiza somente o status, preservando todos os demais dados.
-   *
-   * A interface só será atualizada depois da confirmação do backend.
-   */
+  private createIncident(): void {
+    this.saving = true;
+    this.errorMessage = '';
+
+    const request: CreateIncidentRequest =
+      this.incidentForm.getRawValue();
+
+    this.incidentService
+      .create(request)
+      .pipe(
+        finalize(() => {
+          this.saving = false;
+          this.changeDetectorRef.markForCheck();
+        })
+      )
+      .subscribe({
+        next: response => {
+          this.modalOpen = false;
+
+          this.incidents = [
+            response.data,
+            ...this.incidents
+          ];
+
+          this.successMessage =
+            `Demanda "${response.data.title}" criada com sucesso.`;
+
+          this.changeDetectorRef.markForCheck();
+        },
+
+        error: (error: HttpErrorResponse) => {
+          this.errorMessage = this.getErrorMessage(
+            error,
+            'Não foi possível criar a demanda.'
+          );
+
+          this.changeDetectorRef.markForCheck();
+        }
+      });
+  }
+
+  private updateIncident(): void {
+    if (!this.editingIncidentId) {
+      this.errorMessage =
+        'Não foi possível identificar a demanda que será editada.';
+      return;
+    }
+
+    this.saving = true;
+    this.errorMessage = '';
+
+    const request: UpdateIncidentRequest =
+      this.incidentForm.getRawValue();
+
+    this.incidentService
+      .update(this.editingIncidentId, request)
+      .pipe(
+        finalize(() => {
+          this.saving = false;
+          this.changeDetectorRef.markForCheck();
+        })
+      )
+      .subscribe({
+        next: response => {
+          this.modalOpen = false;
+          this.editingIncidentId = null;
+
+          this.replaceIncident(response.data);
+
+          this.successMessage =
+            `Demanda "${response.data.title}" atualizada com sucesso.`;
+
+          this.changeDetectorRef.markForCheck();
+        },
+
+        error: (error: HttpErrorResponse) => {
+          this.errorMessage = this.getErrorMessage(
+            error,
+            'Não foi possível editar a demanda.'
+          );
+
+          this.changeDetectorRef.markForCheck();
+        }
+      });
+  }
+
   private changeIncidentStatus(
     incident: Incident,
     newStatus: IncidentStatus,
@@ -395,18 +499,11 @@ export class Dashboard implements OnInit {
       )
       .subscribe({
         next: response => {
+          this.replaceIncident(response.data);
+
           this.successMessage =
             `Demanda "${response.data.title}" atualizada para ` +
             `"${this.statusLabel(response.data.status)}".`;
-
-          /*
-           * Substitui no mural somente o registro confirmado pelo backend.
-           */
-          this.incidents = this.incidents.map(currentIncident =>
-            currentIncident.id === response.data.id
-              ? response.data
-              : currentIncident
-          );
 
           this.changeDetectorRef.markForCheck();
         },
@@ -422,9 +519,14 @@ export class Dashboard implements OnInit {
       });
   }
 
-  /**
-   * Traduz erros HTTP em mensagens amigáveis.
-   */
+  private replaceIncident(updatedIncident: Incident): void {
+    this.incidents = this.incidents.map(currentIncident =>
+      currentIncident.id === updatedIncident.id
+        ? updatedIncident
+        : currentIncident
+    );
+  }
+
   private getErrorMessage(
     error: HttpErrorResponse,
     fallbackMessage: string
@@ -448,6 +550,11 @@ export class Dashboard implements OnInit {
 
     if (error.status === 404) {
       return 'A demanda não foi encontrada.';
+    }
+
+    if (error.status === 409) {
+      return error.error?.message ??
+        'A operação não pôde ser concluída devido a um conflito.';
     }
 
     return error.error?.message ?? fallbackMessage;

@@ -26,6 +26,10 @@ textarea {
   font: inherit;
 }
 
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
 .workspace {
   min-height: 100vh;
 }
@@ -88,6 +92,14 @@ textarea {
   letter-spacing: 0.8px;
   cursor: pointer;
   transform: rotate(1deg);
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.logout-button:hover:not(:disabled) {
+  transform: rotate(0deg) translateY(-2px);
+  box-shadow: 3px 4px 0 rgba(0, 0, 0, 0.25);
 }
 
 .content {
@@ -126,6 +138,7 @@ textarea {
 }
 
 .mural-title p {
+  margin: 8px 0 0;
   font-family: 'Special Elite', serif;
   font-size: 16px;
 }
@@ -143,6 +156,9 @@ textarea {
   text-transform: uppercase;
   cursor: pointer;
   transform: rotate(1deg);
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .new-demand-button span {
@@ -150,8 +166,9 @@ textarea {
   font-size: 24px;
 }
 
-.new-demand-button:hover {
+.new-demand-button:hover:not(:disabled) {
   transform: rotate(0deg) translateY(-2px);
+  box-shadow: 7px 8px 0 #5e270e;
 }
 
 .notice {
@@ -229,6 +246,15 @@ textarea {
   font-family: 'Special Elite', serif;
 }
 
+.search-field input:focus,
+.filter-field select:focus,
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 -1px 0 #c72d21;
+}
+
 .filter-actions {
   display: flex;
   gap: 8px;
@@ -244,6 +270,9 @@ textarea {
   letter-spacing: 0.8px;
   text-transform: uppercase;
   cursor: pointer;
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease;
 }
 
 .search-button,
@@ -258,6 +287,14 @@ textarea {
   background: #ead39d;
 }
 
+.search-button:hover:not(:disabled),
+.clear-button:hover:not(:disabled),
+.cancel-button:hover:not(:disabled),
+.pin-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 3px 4px 0 rgba(52, 32, 22, 0.3);
+}
+
 .notice-board {
   display: flex;
   flex-direction: column;
@@ -267,7 +304,7 @@ textarea {
 .demand-poster {
   position: relative;
   width: 100%;
-  padding: 32px 36px 28px;
+  padding: 34px 42px 30px;
   border: 2px solid #67462c;
   box-shadow:
     8px 10px 0 rgba(55, 31, 16, 0.2),
@@ -275,6 +312,7 @@ textarea {
   transition:
     transform 180ms ease,
     box-shadow 180ms ease;
+  overflow: visible;
 }
 
 .demand-poster:nth-child(odd) {
@@ -316,6 +354,7 @@ textarea {
   position: absolute;
   top: -18px;
   left: 50%;
+  z-index: 6;
   font-size: 31px;
   transform: translateX(-50%) rotate(-4deg);
 }
@@ -327,6 +366,11 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 18px;
+}
+
+.poster-topline {
+  min-height: 60px;
+  padding-right: 150px;
 }
 
 .priority-stamp,
@@ -423,6 +467,182 @@ textarea {
   color: #514b45;
 }
 
+/* Ações com ícones no canto superior direito */
+.poster-icon-actions {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pixel-icon-button {
+  width: 56px;
+  height: 56px;
+  padding: 6px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 3px solid #342016;
+  background: rgba(255, 245, 201, 0.96);
+  box-shadow: 4px 5px 0 rgba(52, 32, 22, 0.35);
+  cursor: pointer;
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease,
+    filter 150ms ease;
+}
+
+.pixel-icon-button img {
+  display: block;
+  width: 42px;
+  height: 42px;
+  max-width: 42px;
+  max-height: 42px;
+  object-fit: contain;
+  object-position: center;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  pointer-events: none;
+}
+
+.pixel-icon-button:hover:not(:disabled) {
+  transform: translateY(-4px) rotate(-4deg) scale(1.06);
+  box-shadow: 5px 7px 0 rgba(52, 32, 22, 0.4);
+  filter: saturate(1.12);
+}
+
+.pixel-icon-button:active:not(:disabled) {
+  transform: translateY(1px) scale(0.94);
+  box-shadow: 2px 2px 0 rgba(52, 32, 22, 0.3);
+}
+
+.edit-icon-button {
+  background: #ffe47a;
+}
+
+.delete-icon-button {
+  background: #ffc3ba;
+}
+
+/* Ações de status no rodapé */
+.poster-status-area {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  min-width: 0;
+}
+
+.poster-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.poster-pixel-action {
+  min-height: 52px;
+  padding: 6px 14px 6px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  overflow: hidden;
+  border: 3px solid #342016;
+  box-shadow: 3px 4px 0 rgba(52, 32, 22, 0.32);
+  font-family: 'Anton', sans-serif;
+  font-size: 13px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.poster-pixel-action img {
+  display: block;
+  width: 36px;
+  height: 36px;
+  max-width: 36px;
+  max-height: 36px;
+  flex: 0 0 36px;
+  object-fit: contain;
+  object-position: center;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  pointer-events: none;
+}
+
+.poster-pixel-action:hover:not(:disabled) {
+  transform: translateY(-3px) rotate(-0.6deg);
+  box-shadow: 4px 6px 0 rgba(52, 32, 22, 0.38);
+}
+
+.poster-pixel-action:active:not(:disabled) {
+  transform: translateY(1px) scale(0.97);
+  box-shadow: 2px 2px 0 rgba(52, 32, 22, 0.3);
+}
+
+.start-pixel-action {
+  color: #2b230d;
+  background: #ffd85a;
+}
+
+.complete-pixel-action {
+  color: #ffffff;
+  background: #348b4e;
+}
+
+.closed-message {
+  padding: 9px 12px;
+  border: 3px double #514b45;
+  color: #514b45;
+  font-family: 'Special Elite', serif;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.resolved-poster {
+  position: relative;
+}
+
+.resolved-poster::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: rgba(227, 255, 222, 0.1);
+}
+
+.resolved-mark,
+.closed-mark {
+  position: absolute;
+  right: 165px;
+  top: 86px;
+  z-index: 4;
+  padding: 5px 10px;
+  border: 4px double currentColor;
+  font-family: 'Anton', sans-serif;
+  font-size: 18px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  transform: rotate(-5deg);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.resolved-mark {
+  color: #237344;
+}
+
+.closed-mark {
+  color: #514b45;
+}
+
 .loading-state,
 .empty-state {
   padding: 60px 25px;
@@ -432,6 +652,7 @@ textarea {
   font-family: 'Special Elite', serif;
 }
 
+.loading-state span,
 .empty-state span {
   font-size: 42px;
 }
@@ -527,6 +748,20 @@ textarea {
   resize: vertical;
 }
 
+.field-error {
+  color: #a51f18;
+  font-family: 'Special Elite', serif;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.form-field input.ng-invalid.ng-touched,
+.form-field textarea.ng-invalid.ng-touched,
+.form-field select.ng-invalid.ng-touched {
+  border-bottom-color: #b92119;
+  background: rgba(255, 205, 195, 0.58);
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -570,7 +805,52 @@ button:disabled {
   }
 
   .demand-poster {
-    padding: 31px 23px 25px;
+    padding: 34px 23px 25px;
+  }
+
+  .poster-topline {
+    min-height: 0;
+    padding-right: 0;
+  }
+
+  .poster-icon-actions {
+    position: static;
+    width: 100%;
+    justify-content: flex-end;
+    margin: -4px 0 16px;
+  }
+
+  .pixel-icon-button {
+    width: 54px;
+    height: 54px;
+  }
+
+  .pixel-icon-button img {
+    width: 40px;
+    height: 40px;
+    max-width: 40px;
+    max-height: 40px;
+  }
+
+  .poster-status-area {
+    width: 100%;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .poster-actions {
+    width: 100%;
+  }
+
+  .poster-pixel-action {
+    width: 100%;
+  }
+
+  .resolved-mark,
+  .closed-mark {
+    position: static;
+    width: fit-content;
+    margin-bottom: 13px;
   }
 
   .incident-form {
@@ -589,5 +869,47 @@ button:disabled {
 
   .modal-actions button {
     width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .mural-header {
+    padding-inline: 16px;
+  }
+
+  .content {
+    width: min(100% - 20px, 1000px);
+  }
+
+  .brand-board strong {
+    font-size: 20px;
+  }
+
+  .poster-icon-actions {
+    gap: 8px;
+  }
+
+  .pixel-icon-button {
+    width: 50px;
+    height: 50px;
+  }
+
+  .pixel-icon-button img {
+    width: 36px;
+    height: 36px;
+    max-width: 36px;
+    max-height: 36px;
+  }
+
+  .poster-actions {
+    flex-direction: column;
+  }
+
+  .poster-pixel-action {
+    font-size: 12px;
+  }
+
+  .paper-modal {
+    padding: 28px 20px 22px;
   }
 }
