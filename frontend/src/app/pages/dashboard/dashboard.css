@@ -170,7 +170,96 @@ button {
   transform: rotate(0deg) translateY(-2px);
   box-shadow: 7px 8px 0 #5e270e;
 }
+/* ===========================================================
+   ESTATÍSTICAS
+=========================================================== */
 
+.stats-board {
+  margin-bottom: 30px;
+}
+
+.stats-loading,
+.stats-error {
+  padding: 18px;
+  border: 2px solid #6d492c;
+  background: #fff4cf;
+  box-shadow: 5px 6px 0 rgba(65,39,20,.18);
+  font-family: 'Special Elite', serif;
+}
+
+.stats-error{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:16px;
+}
+
+.retry-stats-button{
+  padding:10px 16px;
+  border:3px solid #342016;
+  background:#c92d20;
+  color:#fff8c8;
+  font-family:'Anton',sans-serif;
+  cursor:pointer;
+}
+
+.stats-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:18px;
+}
+
+.stats-card{
+  padding:20px;
+  border:3px solid #5b4028;
+  box-shadow:5px 6px 0 rgba(52,32,22,.22);
+  text-align:center;
+  transition:.15s;
+}
+
+.stats-card:hover{
+  transform:translateY(-4px);
+}
+
+.stats-card span{
+  display:block;
+  margin-bottom:10px;
+  font-family:'Anton',sans-serif;
+  font-size:14px;
+  letter-spacing:1px;
+  text-transform:uppercase;
+}
+
+.stats-card strong{
+  display:block;
+  font-family:'Anton',sans-serif;
+  font-size:46px;
+  line-height:1;
+}
+
+.stats-card.total{
+  background:#fff0a9;
+}
+
+.stats-card.open{
+  background:#cde6ff;
+}
+
+.stats-card.progress{
+  background:#ffe5a3;
+}
+
+.stats-card.resolved{
+  background:#d9f5c4;
+}
+
+.stats-card.closed{
+  background:#dddddd;
+}
+
+.stats-card.critical{
+  background:#ffd1c8;
+}
 .notice {
   margin-bottom: 18px;
   padding: 15px 18px;

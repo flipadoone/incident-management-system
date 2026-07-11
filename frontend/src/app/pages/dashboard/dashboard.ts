@@ -17,6 +17,7 @@ import { finalize } from 'rxjs';
 import { Comment } from '../../core/models/comment';
 import { CreateCommentRequest } from '../../core/models/create-comment-request';
 import { CreateIncidentRequest } from '../../core/models/create-incident-request';
+import { IncidentStats } from '../../core/models/incident-stats';
 import {
   Incident,
   IncidentCategory,
@@ -25,12 +26,14 @@ import {
 } from '../../core/models/incident';
 import { UpdateIncidentRequest } from '../../core/models/update-incident-request';
 import { UserResponse } from '../../core/models/user-response';
+
 import { Auth } from '../../core/services/auth';
 import { CommentService } from '../../core/services/comment';
 import {
   IncidentFilters,
   IncidentService
 } from '../../core/services/incident';
+import { IncidentStatsService } from '../../core/services/incident-stats';
 import { Token } from '../../core/services/token';
 
 type ModalMode = 'create' | 'edit';
@@ -49,7 +52,17 @@ export class Dashboard implements OnInit {
 
   incidents: Incident[] = [];
 
+  stats: IncidentStats = {
+    total: 0,
+    open: 0,
+    inProgress: 0,
+    resolved: 0,
+    closed: 0,
+    critical: 0
+  };
+
   loading = false;
+  statsLoading = false;
   saving = false;
   modalOpen = false;
 
@@ -59,6 +72,7 @@ export class Dashboard implements OnInit {
 
   errorMessage = '';
   successMessage = '';
+  statsErrorMessage = '';
 
   /**
    * Comentários carregados para cada demanda.
@@ -158,6 +172,7 @@ export class Dashboard implements OnInit {
     private readonly authService: Auth,
     private readonly tokenService: Token,
     private readonly incidentService: IncidentService,
+    private readonly incidentStatsService: IncidentStatsService,
     private readonly commentService: CommentService,
     private readonly router: Router,
     private readonly changeDetectorRef: ChangeDetectorRef
@@ -166,11 +181,56 @@ export class Dashboard implements OnInit {
   }
 
   ngOnInit(): void {
+    this.loadStats();
     this.loadIncidents();
   }
 
   get isEditing(): boolean {
     return this.modalMode === 'edit';
+  }
+
+  /**
+   * Carrega as estatísticas agregadas das demandas.
+   */
+  loadStats(): void {
+    if (this.statsLoading) {
+      return;
+    }
+
+    this.statsLoading = true;
+    this.statsErrorMessage = '';
+
+    this.incidentStatsService
+      .getStats()
+      .pipe(
+        finalize(() => {
+          this.statsLoading = false;
+          this.changeDetectorRef.markForCheck();
+        })
+      )
+      .subscribe({
+        next: response => {
+          this.stats = response.data ?? {
+            total: 0,
+            open: 0,
+            inProgress: 0,
+            resolved: 0,
+            closed: 0,
+            critical: 0
+          };
+
+          this.changeDetectorRef.markForCheck();
+        },
+
+        error: (error: HttpErrorResponse) => {
+          this.statsErrorMessage = this.getErrorMessage(
+            error,
+            'Não foi possível carregar as estatísticas.'
+          );
+
+          this.changeDetectorRef.markForCheck();
+        }
+      });
   }
 
   loadIncidents(): void {
@@ -359,6 +419,7 @@ export class Dashboard implements OnInit {
           this.successMessage =
             `Demanda "${incident.title}" excluída com sucesso.`;
 
+          this.loadStats();
           this.changeDetectorRef.markForCheck();
         },
 
@@ -649,6 +710,7 @@ export class Dashboard implements OnInit {
           this.successMessage =
             `Demanda "${response.data.title}" criada com sucesso.`;
 
+          this.loadStats();
           this.changeDetectorRef.markForCheck();
         },
 
@@ -702,6 +764,7 @@ export class Dashboard implements OnInit {
           this.successMessage =
             `Demanda "${response.data.title}" atualizada com sucesso.`;
 
+          this.loadStats();
           this.changeDetectorRef.markForCheck();
         },
 
@@ -762,6 +825,7 @@ export class Dashboard implements OnInit {
             `Demanda "${response.data.title}" atualizada para ` +
             `"${this.statusLabel(response.data.status)}".`;
 
+          this.loadStats();
           this.changeDetectorRef.markForCheck();
         },
 

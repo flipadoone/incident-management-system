@@ -58,6 +58,68 @@
         Nova demanda
       </button>
     </section>
+    <section class="stats-board">
+
+  <div
+    class="stats-loading"
+    *ngIf="loadingStats"
+  >
+    Carregando estatísticas...
+  </div>
+
+  <div
+    class="stats-error"
+    *ngIf="statsError && !loadingStats"
+  >
+    {{ statsError }}
+
+    <button
+      type="button"
+      class="retry-stats-button"
+      (click)="loadStats()"
+    >
+      Atualizar
+    </button>
+  </div>
+
+  <div
+    class="stats-grid"
+    *ngIf="stats && !loadingStats"
+  >
+
+    <article class="stats-card total">
+      <span>Total</span>
+      <strong>{{ stats.total }}</strong>
+    </article>
+
+    <article class="stats-card open">
+      <span>Abertas</span>
+      <strong>{{ stats.open }}</strong>
+    </article>
+
+    <article class="stats-card progress">
+      <span>Em andamento</span>
+      <strong>{{ stats.inProgress }}</strong>
+    </article>
+
+    <article class="stats-card resolved">
+      <span>Resolvidas</span>
+      <strong>{{ stats.resolved }}</strong>
+    </article>
+
+    <article class="stats-card closed">
+      <span>Fechadas</span>
+      <strong>{{ stats.closed }}</strong>
+    </article>
+
+    <article class="stats-card critical">
+      <span>Críticas</span>
+      <strong>{{ stats.critical }}</strong>
+    </article>
+
+  </div>
+
+</section>
 
     <div
       class="notice success"
