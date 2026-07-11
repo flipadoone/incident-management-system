@@ -1,59 +1,297 @@
-# Frontend
+# 📌 Via Appia - Incident Management System
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.19.
+Sistema desenvolvido como solução para o Desafio Técnico Fullstack da Via Appia.
 
-## Development server
+A aplicação permite o gerenciamento de demandas internas da empresa, oferecendo autenticação JWT, CRUD completo de incidentes, filtros, controle de status e interface inspirada em um mural físico de avisos.
 
-To start a local development server, run:
+---
+
+# Tecnologias
+
+## Backend
+
+- Java 21
+- Spring Boot 3
+- Spring Security
+- JWT
+- Spring Data JPA
+- PostgreSQL
+- Flyway
+- Maven
+- Docker
+- Swagger/OpenAPI
+- Caffeine Cache
+
+## Frontend
+
+- Angular 20
+- TypeScript
+- Reactive Forms
+- Angular Router
+- HttpClient
+- CSS puro
+- HTML5
+
+---
+
+# Funcionalidades
+
+## Autenticação
+
+- Cadastro de usuários
+- Login
+- JWT
+- Interceptor automático
+- Logout
+
+---
+
+## Demandas
+
+- Criar demanda
+- Listar demandas
+- Editar demanda
+- Excluir demanda
+- Buscar por título
+- Filtrar por:
+  - Status
+  - Prioridade
+  - Categoria
+- Alteração de status
+- Reabrir demanda
+- Interface responsiva
+
+---
+
+## Status suportados
+
+- OPEN
+- IN_PROGRESS
+- RESOLVED
+- CLOSED
+
+---
+
+## Prioridades
+
+- LOW
+- MEDIUM
+- HIGH
+- CRITICAL
+
+---
+
+## Categorias
+
+- HARDWARE
+- SOFTWARE
+- NETWORK
+- SECURITY
+- OTHER
+
+---
+
+# Interface
+
+A interface foi desenvolvida utilizando um conceito de mural físico de avisos.
+
+Características:
+
+- Post-its coloridos
+- Pins
+- Carimbo de prioridade
+- Ícones pixel art
+- Modal personalizado
+- Responsividade
+- Layout exclusivo
+
+---
+
+# Backend
+
+Estrutura em camadas:
+
+```
+Controller
+
+↓
+
+Service
+
+↓
+
+Repository
+
+↓
+
+Database
+```
+
+Utiliza:
+
+- DTOs
+- Mapper
+- Specification
+- Cache
+- Validação
+- Exceptions customizadas
+
+---
+
+# Banco de Dados
+
+PostgreSQL executando em Docker.
+
+Migrações controladas pelo Flyway.
+
+Tabelas:
+
+- users
+- roles
+- incidents
+- comments
+
+---
+
+# Executando o projeto
+
+## Backend
 
 ```bash
+cd backend
+
+docker compose up -d
+
+.\mvnw spring-boot:run
+```
+
+---
+
+## Frontend
+
+```bash
+cd frontend
+
+npm install
+
 ng serve
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Frontend:
 
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
+```
+http://localhost:4200
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Swagger:
 
-```bash
-ng generate --help
+```
+http://localhost:8080/swagger-ui/index.html
 ```
 
-## Building
+---
 
-To build the project run:
+# Build
+
+Backend
+
+```bash
+.\mvnw clean test
+```
+
+Frontend
 
 ```bash
 ng build
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+---
 
-## Running unit tests
+# Estrutura
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+```
+backend/
+│
+├── controller
+├── dto
+├── entity
+├── exception
+├── mapper
+├── repository
+├── security
+├── service
+├── specification
+└── resources
 
-```bash
-ng test
+frontend/
+│
+├── core
+├── pages
+├── services
+├── models
+└── public
 ```
 
-## Running end-to-end tests
+---
 
-For end-to-end (e2e) testing, run:
+# Diferenciais implementados
 
-```bash
-ng e2e
-```
+- Interface temática exclusiva
+- JWT
+- CRUD completo
+- Cache
+- Flyway
+- Docker
+- Swagger
+- Busca dinâmica
+- Filtros
+- Alteração de status
+- Responsividade
+- Ícones pixel art personalizados
+- Código organizado por responsabilidades
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+---
 
-## Additional Resources
+# Status atual do projeto
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+## ✅ Implementado
+
+- Autenticação JWT
+- Cadastro de usuários
+- Login
+- Logout
+- CRUD completo de demandas
+- Alteração de status
+- Exclusão de demandas
+- Edição de demandas
+- Busca por título
+- Filtros
+- Cache com Caffeine
+- Flyway
+- Docker (PostgreSQL)
+- Swagger/OpenAPI
+- Interface personalizada
+- Responsividade
+- Build do backend
+- Build do frontend
+
+---
+
+## 🚧 Em desenvolvimento
+
+- Persistência dos comentários (backend já criado, integração final pendente)
+- Estatísticas do dashboard
+- Paginação no frontend
+- Ordenação das demandas
+- Perfis Leitor e Escritor
+- Docker Compose completo (frontend + backend + banco)
+- Testes adicionais
+- Ajustes finais da apresentação
+
+---
+
+# Autor
+
+Filipe Lopes dos Santos
+
+Desenvolvido para o Desafio Técnico Fullstack da Via Appia.

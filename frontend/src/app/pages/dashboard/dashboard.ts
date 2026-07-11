@@ -14,6 +14,8 @@ import {
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 
+import { Comment } from '../../core/models/comment';
+import { CreateCommentRequest } from '../../core/models/create-comment-request';
 import { CreateIncidentRequest } from '../../core/models/create-incident-request';
 import {
   Incident,
@@ -24,6 +26,7 @@ import {
 import { UpdateIncidentRequest } from '../../core/models/update-incident-request';
 import { UserResponse } from '../../core/models/user-response';
 import { Auth } from '../../core/services/auth';
+import { CommentService } from '../../core/services/comment';
 import {
   IncidentFilters,
   IncidentService
@@ -57,6 +60,39 @@ export class Dashboard implements OnInit {
   errorMessage = '';
   successMessage = '';
 
+  /**
+   * Comentários carregados para cada demanda.
+   */
+  readonly commentsByIncident: Record<string, Comment[]> = {};
+
+  /**
+   * Controla quais áreas de comentários estão abertas.
+   */
+  readonly commentsOpen: Record<string, boolean> = {};
+
+  /**
+   * Controla o carregamento dos comentários de cada demanda.
+   */
+  readonly commentsLoading: Record<string, boolean> = {};
+
+  /**
+   * Controla o envio de comentário em cada demanda.
+   */
+  readonly commentsSending: Record<string, boolean> = {};
+
+  /**
+   * Mensagem de erro individual para cada área de comentários.
+   */
+  readonly commentsError: Record<string, string> = {};
+
+  /**
+   * Um campo de comentário independente para cada demanda.
+   */
+  readonly commentControls: Record<
+    string,
+    FormControl<string>
+  > = {};
+
   readonly filterForm = new FormGroup({
     title: new FormControl('', {
       nonNullable: true
@@ -80,8 +116,8 @@ export class Dashboard implements OnInit {
       nonNullable: true,
       validators: [
         Validators.required,
-        Validators.minLength(5),
-        Validators.maxLength(120)
+        Validators.minLength(3),
+        Validators.maxLength(150)
       ]
     }),
 
@@ -89,7 +125,8 @@ export class Dashboard implements OnInit {
       nonNullable: true,
       validators: [
         Validators.required,
-        Validators.maxLength(5000)
+        Validators.minLength(5),
+        Validators.maxLength(2000)
       ]
     }),
 
@@ -112,7 +149,7 @@ export class Dashboard implements OnInit {
       nonNullable: true,
       validators: [
         Validators.required,
-        Validators.maxLength(150)
+        Validators.maxLength(200)
       ]
     })
   });
@@ -121,6 +158,7 @@ export class Dashboard implements OnInit {
     private readonly authService: Auth,
     private readonly tokenService: Token,
     private readonly incidentService: IncidentService,
+    private readonly commentService: CommentService,
     private readonly router: Router,
     private readonly changeDetectorRef: ChangeDetectorRef
   ) {
@@ -156,6 +194,11 @@ export class Dashboard implements OnInit {
       .subscribe({
         next: response => {
           this.incidents = response.data.content;
+
+          for (const incident of this.incidents) {
+            this.ensureCommentControl(incident.id);
+          }
+
           this.changeDetectorRef.markForCheck();
         },
 
@@ -302,8 +345,16 @@ export class Dashboard implements OnInit {
       .subscribe({
         next: () => {
           this.incidents = this.incidents.filter(
-            currentIncident => currentIncident.id !== incident.id
+            currentIncident =>
+              currentIncident.id !== incident.id
           );
+
+          delete this.commentsByIncident[incident.id];
+          delete this.commentsOpen[incident.id];
+          delete this.commentsLoading[incident.id];
+          delete this.commentsSending[incident.id];
+          delete this.commentsError[incident.id];
+          delete this.commentControls[incident.id];
 
           this.successMessage =
             `Demanda "${incident.title}" excluída com sucesso.`;
@@ -320,6 +371,186 @@ export class Dashboard implements OnInit {
           this.changeDetectorRef.markForCheck();
         }
       });
+  }
+
+  /**
+   * Abre ou fecha a área de comentários.
+   *
+   * Os comentários são carregados apenas na primeira abertura.
+   */
+  toggleComments(incident: Incident): void {
+    const incidentId = incident.id;
+    const willOpen = !this.commentsOpen[incidentId];
+
+    this.commentsOpen[incidentId] = willOpen;
+    this.ensureCommentControl(incidentId);
+
+    if (
+      willOpen &&
+      this.commentsByIncident[incidentId] === undefined
+    ) {
+      this.loadComments(incidentId);
+    }
+
+    this.changeDetectorRef.markForCheck();
+  }
+
+  /**
+   * Busca os comentários de uma demanda.
+   */
+  loadComments(incidentId: string): void {
+    if (this.commentsLoading[incidentId]) {
+      return;
+    }
+
+    this.commentsLoading[incidentId] = true;
+    this.commentsError[incidentId] = '';
+
+    this.commentService
+      .findAllByIncidentId(incidentId)
+      .pipe(
+        finalize(() => {
+          this.commentsLoading[incidentId] = false;
+          this.changeDetectorRef.markForCheck();
+        })
+      )
+      .subscribe({
+        next: response => {
+          this.commentsByIncident[incidentId] =
+            response.data ?? [];
+
+          this.changeDetectorRef.markForCheck();
+        },
+
+        error: (error: HttpErrorResponse) => {
+          this.commentsByIncident[incidentId] = [];
+
+          this.commentsError[incidentId] =
+            this.getErrorMessage(
+              error,
+              'Não foi possível carregar os comentários.'
+            );
+
+          this.changeDetectorRef.markForCheck();
+        }
+      });
+  }
+
+  /**
+   * Envia um comentário para uma demanda.
+   */
+  submitComment(incident: Incident): void {
+    const incidentId = incident.id;
+    const control = this.getCommentControl(incidentId);
+
+    if (
+      control.invalid ||
+      this.commentsSending[incidentId]
+    ) {
+      control.markAsTouched();
+      return;
+    }
+
+    const normalizedMessage = control.value.trim();
+
+    if (!normalizedMessage) {
+      control.setErrors({
+        required: true
+      });
+
+      control.markAsTouched();
+      return;
+    }
+
+    const request: CreateCommentRequest = {
+      message: normalizedMessage
+    };
+
+    this.commentsSending[incidentId] = true;
+    this.commentsError[incidentId] = '';
+
+    this.commentService
+      .create(incidentId, request)
+      .pipe(
+        finalize(() => {
+          this.commentsSending[incidentId] = false;
+          this.changeDetectorRef.markForCheck();
+        })
+      )
+      .subscribe({
+        next: response => {
+          const currentComments =
+            this.commentsByIncident[incidentId] ?? [];
+
+          this.commentsByIncident[incidentId] = [
+            ...currentComments,
+            response.data
+          ];
+
+          control.reset('');
+
+          this.successMessage =
+            `Comentário adicionado à demanda "${incident.title}".`;
+
+          this.changeDetectorRef.markForCheck();
+        },
+
+        error: (error: HttpErrorResponse) => {
+          this.commentsError[incidentId] =
+            this.getErrorMessage(
+              error,
+              'Não foi possível adicionar o comentário.'
+            );
+
+          this.changeDetectorRef.markForCheck();
+        }
+      });
+  }
+
+  /**
+   * Retorna o campo de comentário referente à demanda.
+   */
+  getCommentControl(
+    incidentId: string
+  ): FormControl<string> {
+    this.ensureCommentControl(incidentId);
+
+    return this.commentControls[incidentId];
+  }
+
+  /**
+   * Retorna os comentários já carregados.
+   */
+  getComments(incidentId: string): Comment[] {
+    return this.commentsByIncident[incidentId] ?? [];
+  }
+
+  /**
+   * Retorna a quantidade de comentários carregados.
+   */
+  getCommentCount(incidentId: string): number {
+    return this.getComments(incidentId).length;
+  }
+
+  /**
+   * Indica se a área de comentários está aberta.
+   */
+  isCommentsOpen(incidentId: string): boolean {
+    return Boolean(this.commentsOpen[incidentId]);
+  }
+
+  /**
+   * Indica se os comentários estão carregando.
+   */
+  isCommentsLoading(incidentId: string): boolean {
+    return Boolean(this.commentsLoading[incidentId]);
+  }
+
+  /**
+   * Indica se um comentário está sendo enviado.
+   */
+  isCommentSending(incidentId: string): boolean {
+    return Boolean(this.commentsSending[incidentId]);
   }
 
   isProcessing(incident: Incident): boolean {
@@ -368,8 +599,18 @@ export class Dashboard implements OnInit {
     return labels[category];
   }
 
-  trackById(_index: number, incident: Incident): string {
+  trackById(
+    _index: number,
+    incident: Incident
+  ): string {
     return incident.id;
+  }
+
+  trackCommentById(
+    _index: number,
+    comment: Comment
+  ): string {
+    return comment.id;
   }
 
   private createIncident(): void {
@@ -378,20 +619,21 @@ export class Dashboard implements OnInit {
 
     const formValue = this.incidentForm.getRawValue();
 
-const request: CreateIncidentRequest = {
-  title: formValue.title.trim(),
-  description: formValue.description.trim(),
-  priority: formValue.priority,
-  category: formValue.category,
-  location: formValue.location.trim()
-};
-this.incidentService
-  .create(request)
-  .pipe(
-    finalize(() => {
-      this.saving = false;
-      this.changeDetectorRef.markForCheck();
-    })
+    const request: CreateIncidentRequest = {
+      title: formValue.title.trim(),
+      description: formValue.description.trim(),
+      priority: formValue.priority,
+      category: formValue.category,
+      location: formValue.location.trim()
+    };
+
+    this.incidentService
+      .create(request)
+      .pipe(
+        finalize(() => {
+          this.saving = false;
+          this.changeDetectorRef.markForCheck();
+        })
       )
       .subscribe({
         next: response => {
@@ -401,6 +643,8 @@ this.incidentService
             response.data,
             ...this.incidents
           ];
+
+          this.ensureCommentControl(response.data.id);
 
           this.successMessage =
             `Demanda "${response.data.title}" criada com sucesso.`;
@@ -429,8 +673,16 @@ this.incidentService
     this.saving = true;
     this.errorMessage = '';
 
-    const request: UpdateIncidentRequest =
-      this.incidentForm.getRawValue();
+    const formValue = this.incidentForm.getRawValue();
+
+    const request: UpdateIncidentRequest = {
+      title: formValue.title.trim(),
+      description: formValue.description.trim(),
+      status: formValue.status,
+      priority: formValue.priority,
+      category: formValue.category,
+      location: formValue.location.trim()
+    };
 
     this.incidentService
       .update(this.editingIncidentId, request)
@@ -524,11 +776,31 @@ this.incidentService
       });
   }
 
-  private replaceIncident(updatedIncident: Incident): void {
-    this.incidents = this.incidents.map(currentIncident =>
-      currentIncident.id === updatedIncident.id
-        ? updatedIncident
-        : currentIncident
+  private ensureCommentControl(
+    incidentId: string
+  ): void {
+    if (this.commentControls[incidentId]) {
+      return;
+    }
+
+    this.commentControls[incidentId] =
+      new FormControl('', {
+        nonNullable: true,
+        validators: [
+          Validators.required,
+          Validators.maxLength(2000)
+        ]
+      });
+  }
+
+  private replaceIncident(
+    updatedIncident: Incident
+  ): void {
+    this.incidents = this.incidents.map(
+      currentIncident =>
+        currentIncident.id === updatedIncident.id
+          ? updatedIncident
+          : currentIncident
     );
   }
 

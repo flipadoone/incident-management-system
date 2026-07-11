@@ -207,7 +207,6 @@
           }}
         </span>
 
-        <!-- Ícones no canto direito do cartaz -->
         <div class="poster-icon-actions">
           <button
             type="button"
@@ -282,13 +281,11 @@
         <div class="poster-details">
           <span>
             <strong>Categoria</strong>
-
             {{ categoryLabel(incident.category) }}
           </span>
 
           <span>
             <strong>Local</strong>
-
             {{ incident.location || 'Não informado' }}
           </span>
         </div>
@@ -386,6 +383,176 @@
             </span>
           </div>
         </footer>
+
+        <!-- Comentários -->
+        <section class="comments-section">
+          <button
+            type="button"
+            class="comments-toggle-button"
+            [attr.aria-expanded]="isCommentsOpen(incident.id)"
+            [attr.aria-controls]="'comments-' + incident.id"
+            (click)="toggleComments(incident)"
+          >
+            <span class="comments-toggle-icon" aria-hidden="true">
+              💬
+            </span>
+
+            <span>
+              Comentários
+            </span>
+
+            <span class="comments-count">
+              {{ getCommentCount(incident.id) }}
+            </span>
+
+            <span
+              class="comments-toggle-arrow"
+              aria-hidden="true"
+            >
+              {{
+                isCommentsOpen(incident.id)
+                  ? '▲'
+                  : '▼'
+              }}
+            </span>
+          </button>
+
+          <div
+            class="comments-panel"
+            *ngIf="isCommentsOpen(incident.id)"
+            [id]="'comments-' + incident.id"
+          >
+            <div
+              class="comments-loading"
+              *ngIf="isCommentsLoading(incident.id)"
+            >
+              Procurando anotações...
+            </div>
+
+            <div
+              class="comments-error"
+              role="alert"
+              *ngIf="commentsError[incident.id]"
+            >
+              <span>
+                {{ commentsError[incident.id] }}
+              </span>
+
+              <button
+                type="button"
+                class="retry-comments-button"
+                [disabled]="isCommentsLoading(incident.id)"
+                (click)="loadComments(incident.id)"
+              >
+                Tentar novamente
+              </button>
+            </div>
+
+            <div
+              class="comments-empty"
+              *ngIf="
+                !isCommentsLoading(incident.id) &&
+                !commentsError[incident.id] &&
+                getComments(incident.id).length === 0
+              "
+            >
+              <span aria-hidden="true">📝</span>
+
+              <p>
+                Nenhuma anotação foi deixada ainda.
+              </p>
+            </div>
+
+            <div
+              class="comments-list"
+              *ngIf="
+                !isCommentsLoading(incident.id) &&
+                getComments(incident.id).length > 0
+              "
+            >
+              <article
+                class="comment-note"
+                *ngFor="
+                  let comment of getComments(incident.id);
+                  let commentIndex = index;
+                  trackBy: trackCommentById
+                "
+                [class.comment-note-yellow]="commentIndex % 3 === 0"
+                [class.comment-note-blue]="commentIndex % 3 === 1"
+                [class.comment-note-pink]="commentIndex % 3 === 2"
+              >
+                <header class="comment-header">
+                  <strong>
+                    {{ comment.author }}
+                  </strong>
+
+                  <time
+                    [attr.datetime]="comment.createdAt"
+                  >
+                    {{ comment.createdAt | date:'dd/MM/yyyy HH:mm' }}
+                  </time>
+                </header>
+
+                <p>
+                  {{ comment.message }}
+                </p>
+              </article>
+            </div>
+
+            <form
+              class="comment-form"
+              (ngSubmit)="submitComment(incident)"
+            >
+              <label
+                class="comment-label"
+                [for]="'comment-' + incident.id"
+              >
+                DEIXAR UMA ANOTAÇÃO
+              </label>
+
+              <textarea
+                [id]="'comment-' + incident.id"
+                rows="3"
+                maxlength="2000"
+                placeholder="Escreva um comentário..."
+                [formControl]="getCommentControl(incident.id)"
+              ></textarea>
+
+              <div class="comment-form-footer">
+                <small class="comment-character-count">
+                  {{
+                    getCommentControl(incident.id).value.length
+                  }}/2000
+                </small>
+
+                <button
+                  type="submit"
+                  class="send-comment-button"
+                  [disabled]="
+                    getCommentControl(incident.id).invalid ||
+                    isCommentSending(incident.id)
+                  "
+                >
+                  {{
+                    isCommentSending(incident.id)
+                      ? 'Enviando...'
+                      : 'Comentar'
+                  }}
+                </button>
+              </div>
+
+              <small
+                class="field-error"
+                *ngIf="
+                  getCommentControl(incident.id).invalid &&
+                  getCommentControl(incident.id).touched
+                "
+              >
+                Escreva um comentário antes de enviar.
+              </small>
+            </form>
+          </div>
+        </section>
       </article>
     </section>
   </main>
@@ -465,7 +632,7 @@
             incidentForm.controls.title.touched
           "
         >
-          Informe um título com pelo menos 3 caracteres.
+          Informe um título válido.
         </small>
       </div>
 
@@ -489,7 +656,7 @@
             incidentForm.controls.description.touched
           "
         >
-          Informe uma descrição com pelo menos 5 caracteres.
+          Informe uma descrição válida.
         </small>
       </div>
 
