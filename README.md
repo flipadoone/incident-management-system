@@ -369,6 +369,17 @@ O cache melhora consultas frequentes sem exigir infraestrutura externa adicional
 12. Mostrar o Swagger.
 13. Explicar JWT, Flyway, cache e arquitetura.
 
+    Logins teste:
+     
+  "name": "Usuário Leitor",
+  "email": "leitor@viaappia.com",
+  "password": "Leitor@123"
+
+
+"name": "Usuário Admin",
+  "email": "admin@viaappia.com",
+  "password": "Admin@123"
+  
 ## Autor
 
 Desenvolvido por Abduh para o desafio técnico Full Stack da Via Appia.
