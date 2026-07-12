@@ -62,16 +62,16 @@
 
   <div
     class="stats-loading"
-    *ngIf="loadingStats"
+    *ngIf="statsLoading"
   >
     Carregando estatísticas...
   </div>
 
   <div
     class="stats-error"
-    *ngIf="statsError && !loadingStats"
+    *ngIf="statsErrorMessage && !statsLoading"
   >
-    {{ statsError }}
+    {{ statsErrorMessage }}
 
     <button
       type="button"
@@ -84,7 +84,7 @@
 
   <div
     class="stats-grid"
-    *ngIf="stats && !loadingStats"
+    *ngIf="!statsLoading && !statsErrorMessage"
   >
 
     <article class="stats-card total">
@@ -140,7 +140,7 @@
     <form
       class="filter-paper"
       [formGroup]="filterForm"
-      (ngSubmit)="loadIncidents()"
+      (ngSubmit)="searchIncidents()"
     >
       <div class="search-field">
         <label for="search">
@@ -617,6 +617,25 @@
         </section>
       </article>
     </section>
+
+    <div
+      class="pagination"
+      *ngIf="totalPages > 1"
+    >
+      <button type="button" (click)="previousPage()" [disabled]="firstPage || loading">
+        ← Anterior
+      </button>
+
+      <span>
+        Página <strong>{{ currentPage + 1 }}</strong>
+        de <strong>{{ totalPages }}</strong>
+        • {{ totalElements }} demandas
+      </span>
+
+      <button type="button" (click)="nextPage()" [disabled]="lastPage || loading">
+        Próxima →
+      </button>
+    </div>
   </main>
 </div>
 

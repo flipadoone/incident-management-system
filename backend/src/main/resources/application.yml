@@ -3,9 +3,9 @@ spring:
     name: incident-management-api
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/incident_management
-    username: viaappia
-    password: viaappia123
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/incident_management}
+    username: ${DATABASE_USERNAME:viaappia}
+    password: ${DATABASE_PASSWORD:viaappia123}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -32,9 +32,9 @@ spring:
       spec: maximumSize=500,expireAfterWrite=10m
 
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 
 logging:
   level:
-    org.hibernate.SQL: debug
-    org.hibernate.orm.jdbc.bind: trace
+    org.hibernate.SQL: ${HIBERNATE_SQL_LOG_LEVEL:debug}
+    org.hibernate.orm.jdbc.bind: ${HIBERNATE_BIND_LOG_LEVEL:trace}

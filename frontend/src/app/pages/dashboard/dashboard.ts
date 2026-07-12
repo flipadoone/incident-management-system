@@ -52,6 +52,13 @@ export class Dashboard implements OnInit {
 
   incidents: Incident[] = [];
 
+  currentPage = 0;
+  pageSize = 20;
+  totalPages = 0;
+  totalElements = 0;
+  firstPage = true;
+  lastPage = true;
+
   stats: IncidentStats = {
     total: 0,
     open: 0,
@@ -239,8 +246,8 @@ export class Dashboard implements OnInit {
 
     const filters: IncidentFilters = {
       ...this.filterForm.getRawValue(),
-      page: 0,
-      size: 20
+      page: this.currentPage,
+      size: this.pageSize
     };
 
     this.incidentService
@@ -254,6 +261,10 @@ export class Dashboard implements OnInit {
       .subscribe({
         next: response => {
           this.incidents = response.data.content;
+          this.totalPages = response.data.totalPages;
+          this.totalElements = response.data.totalElements;
+          this.firstPage = response.data.first;
+          this.lastPage = response.data.last;
 
           for (const incident of this.incidents) {
             this.ensureCommentControl(incident.id);
@@ -273,6 +284,11 @@ export class Dashboard implements OnInit {
       });
   }
 
+  searchIncidents(): void {
+    this.currentPage = 0;
+    this.loadIncidents();
+  }
+
   clearFilters(): void {
     this.filterForm.reset({
       title: '',
@@ -281,7 +297,47 @@ export class Dashboard implements OnInit {
       category: ''
     });
 
+    this.currentPage = 0;
     this.loadIncidents();
+  }
+
+  previousPage(): void {
+    if (this.loading || this.firstPage || this.currentPage <= 0) {
+      return;
+    }
+
+    this.currentPage -= 1;
+    this.loadIncidents();
+    this.scrollToDemandList();
+  }
+
+  nextPage(): void {
+    if (
+      this.loading ||
+      this.lastPage ||
+      this.currentPage >= this.totalPages - 1
+    ) {
+      return;
+    }
+
+    this.currentPage += 1;
+    this.loadIncidents();
+    this.scrollToDemandList();
+  }
+
+  goToPage(page: number): void {
+    if (
+      this.loading ||
+      page < 0 ||
+      page >= this.totalPages ||
+      page === this.currentPage
+    ) {
+      return;
+    }
+
+    this.currentPage = page;
+    this.loadIncidents();
+    this.scrollToDemandList();
   }
 
   openCreateModal(): void {
@@ -404,11 +460,6 @@ export class Dashboard implements OnInit {
       )
       .subscribe({
         next: () => {
-          this.incidents = this.incidents.filter(
-            currentIncident =>
-              currentIncident.id !== incident.id
-          );
-
           delete this.commentsByIncident[incident.id];
           delete this.commentsOpen[incident.id];
           delete this.commentsLoading[incident.id];
@@ -416,9 +467,14 @@ export class Dashboard implements OnInit {
           delete this.commentsError[incident.id];
           delete this.commentControls[incident.id];
 
+          if (this.incidents.length === 1 && this.currentPage > 0) {
+            this.currentPage -= 1;
+          }
+
           this.successMessage =
             `Demanda "${incident.title}" excluída com sucesso.`;
 
+          this.loadIncidents();
           this.loadStats();
           this.changeDetectorRef.markForCheck();
         },
@@ -699,17 +755,12 @@ export class Dashboard implements OnInit {
       .subscribe({
         next: response => {
           this.modalOpen = false;
-
-          this.incidents = [
-            response.data,
-            ...this.incidents
-          ];
-
-          this.ensureCommentControl(response.data.id);
+          this.currentPage = 0;
 
           this.successMessage =
             `Demanda "${response.data.title}" criada com sucesso.`;
 
+          this.loadIncidents();
           this.loadStats();
           this.changeDetectorRef.markForCheck();
         },
@@ -838,6 +889,17 @@ export class Dashboard implements OnInit {
           this.changeDetectorRef.markForCheck();
         }
       });
+  }
+
+  private scrollToDemandList(): void {
+    window.setTimeout(() => {
+      document
+        .querySelector('.notice-board')
+        ?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+    }, 0);
   }
 
   private ensureCommentControl(
