@@ -382,4 +382,4 @@ O cache melhora consultas frequentes sem exigir infraestrutura externa adicional
   
 ## Autor
 
-Desenvolvido por Abduh para o desafio técnico Full Stack da Via Appia.
+Desenvolvido por Filipe Lopes do Santos para o desafio técnico Full Stack da Via Appia.
